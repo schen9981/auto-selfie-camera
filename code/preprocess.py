@@ -9,7 +9,7 @@ import cv2
 num_classes = 2
 train_ratio = 0.8
 
-img_size = 64
+img_size = 128
 
 def read_raw_data(img_path, data_path):
     '''
@@ -36,11 +36,14 @@ def read_raw_data(img_path, data_path):
     for i, img in enumerate(img_files):
         # read image
         curr_path = os.path.join(img_path, img)
-        curr_img = cv2.imread(curr_path)
+        curr_img = cv2.imread(curr_path).astype('float32')
         # convert to grayscale
         grey_img = cv2.cvtColor(curr_img, cv2.COLOR_BGR2GRAY)
+        # normalize image
+        normalized = np.zeros(grey_img.shape)
+        normalized = cv2.normalize(grey_img, normalized, 0, 1, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         # resize image 
-        save = cv2.resize(grey_img, (img_size, img_size))
+        save = cv2.resize(normalized, (img_size, img_size))
         data_sample[i, :, :] = save
 
 
@@ -55,6 +58,7 @@ def read_raw_data(img_path, data_path):
     label_file.close()
 
     return data_sample, labels, headpose
+
 
 def train_test_split(data_sample, labels, headpose):
     '''
