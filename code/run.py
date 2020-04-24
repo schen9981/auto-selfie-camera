@@ -5,6 +5,7 @@ import imutils
 import numpy as np
 import time
 import cv2
+from facepipeline import 
 
 def detect_smile(mouth):
   # to be filled in with our model

@@ -5,11 +5,12 @@ from scipy import ndimage
 from skimage import color
 import matplotlib.pyplot as plt
 import cv2
+from facepipeline import face_detection
 
 num_classes = 2
 train_ratio = 0.8
 
-img_size = 128
+img_size = 100
 
 def read_raw_data(img_path, data_path):
     '''
@@ -17,16 +18,17 @@ def read_raw_data(img_path, data_path):
 
         img_path: path to raw jgp images of faces
         data_path: path to the labels file, with head-pose information
+        cropped_dir: path to directory with cropped images
 
         return: data_sample - # files x image_size x image_size
                 labels - # files x 1
                 headpose - # files x 3 (yaw, pitch, roll)
     '''
     # get list of image files
-    img_files = os.listdir(img_path)
+    img_files = sorted(os.listdir(img_path))
 
     # allocate space in memory for images
-    data_sample = np.ndarray(shape=(len(img_files), img_size, img_size), dtype=np.float32)
+    data_sample = np.ndarray(shape=(len(img_files), img_size, img_size, 3), dtype=np.float32)
 
     # allocate space in memory for corresponding lables and face pose information
     labels = np.zeros(len(img_files))
@@ -34,17 +36,14 @@ def read_raw_data(img_path, data_path):
 
     # store image data 
     for i, img in enumerate(img_files):
-        # read image
-        curr_path = os.path.join(img_path, img)
-        curr_img = cv2.imread(curr_path).astype('float32')
-        # convert to grayscale
-        grey_img = cv2.cvtColor(curr_img, cv2.COLOR_BGR2GRAY)
-        # normalize image
-        normalized = np.zeros(grey_img.shape)
-        normalized = cv2.normalize(grey_img, normalized, 0, 1, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        # resize image 
-        save = cv2.resize(normalized, (img_size, img_size))
-        data_sample[i, :, :] = save
+        if img[-3:] == 'png':
+            # read image
+            curr_path = os.path.join(img_path, img)
+            curr_img = cv2.imread(curr_path).astype('float32')
+
+            # resize image 
+            save = cv2.resize(curr_img, (img_size, img_size))
+            data_sample[i, :, :, :] = save
 
 
     # store labels and headpose
@@ -58,7 +57,6 @@ def read_raw_data(img_path, data_path):
     label_file.close()
 
     return data_sample, labels, headpose
-
 
 def train_test_split(data_sample, labels, headpose):
     '''

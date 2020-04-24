@@ -4,7 +4,7 @@ import os
 from PIL import Image
 
 # pretrained classifiers for face and eyes 
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
 
 def face_detection(og_path, cropped_dir):
     ''' 
@@ -26,6 +26,7 @@ def face_detection(og_path, cropped_dir):
         filename = 'cropped_' + img[:-4] + '.png'
         write_path = os.path.join(cropped_dir, filename)
         if len(faces) != 0:
+            # if face is found
             for face in faces:
                 cropped_img = img_crop(og, faces[0])
                 cropped_img.save(write_path)
@@ -36,10 +37,13 @@ def face_detection(og_path, cropped_dir):
 
 
 def img_crop(og_img, face):
-    xdelta = face[2]
-    ydelta = face[3]
+    x = face[0]
+    y = face[1]
+    w = face[2]
+    h = face[3]
 
-    crop_box = [face[0] - xdelta, face[1] - ydelta, face[0] + face[2] + xdelta, face[1] + face[3] + ydelta]
+    # define cropping area: (left, upper, right, lower)
+    crop_box = (x, y, x + w, y + h)
 
     return og_img.crop(crop_box)
 

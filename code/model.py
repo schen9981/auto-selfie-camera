@@ -11,6 +11,8 @@ from scipy.stats import sem
 from skimage.feature import hog
 from scipy.spatial.distance import cdist
 from  sklearn.cluster import MiniBatchKMeans
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.decomposition import PCA
 
 
 def flatten_data(data):
@@ -25,43 +27,9 @@ def flatten_data(data):
     reshaped = data.reshape((num_samples, -1))
     return reshaped
 
-def build_vocabulary(data, vocab_size):
+def get_hog_features(data):
     '''
-        samples hog desciptors from input training images, cluster with kmeans,
-        return cluster centers
-
-        data: raw image pixel values 
-        vocab_size: integer indicating the number of words desired for 
-                    bag of words vocab set
-    '''
-    num_images = len(data)
-    cells = 4
-    pixels = 8
-
-    # get all features of images
-    hog_descriptors = None
-
-    for i in range(num_images):
-        curr_img = data[i]
-
-        # generate hog descriptor for image
-        hog_img = np.array(hog(curr_img, cells_per_block=(cells, cells), pixels_per_cell=(pixels, pixels), feature_vector=True))
-
-        # reshape into list of block feature vectors
-        if i == 0:
-            hog_descriptors = np.reshape(hog_img, (-1, cells * cells * 9))
-        else:
-            hog_img = np.reshape(hog_img, (-1, cells * cells * 9))
-            hog_descriptors = np.concatenate((hog_descriptors, hog_img))
-    
-    # kmeans clustering to find smaller number of representation points
-    kmeans = MiniBatchKMeans(n_clusters=vocab_size, batch_size=300, max_iter=100, tol=0.001).fit(hog_descriptors)
-
-    return kmeans.cluster_centers_
-
-def get_bag_of_words(data):
-    '''
-        takes input images and calculates the bag of words histogram for each input image, 
+        takes input images and hog features for each input image, 
         return histograms in array (uses vocab to calculate distances)
 
         data: input dataset
@@ -69,45 +37,32 @@ def get_bag_of_words(data):
         return: matrix of nxd, where n is the number of images in the input dataset, and d is the 
                 size of the histogram built for each image 
     '''
-    vocab = np.load('vocab.npy')
-    print("vocab loaded")
 
     num_images = len(data)
-    vocab_size = len(vocab)
-    cells = 4
-    pixels = 8
+    cells = 10
+    pixels = 10
 
-    bag_of_words = np.zeros((num_images, vocab_size))
+    hog_features = None
 
     for i in range(num_images):
         curr_img = data[i]
 
         # extract features
-        hog_img = hog(curr_img, cells_per_block=(cells, cells), pixels_per_cell=(pixels, pixels), feature_vector=True)
+        if i == 0:
+            hog_features = hog(curr_img, orientations=15, cells_per_block=(cells, cells), pixels_per_cell=(pixels, pixels), feature_vector=True)
+        else:
+            feature = hog(curr_img, orientations=15, cells_per_block=(cells, cells), pixels_per_cell=(pixels, pixels), feature_vector=True)
+            hog_features = np.vstack((hog_features, feature))
 
-        # reshape into list of block feature vectors
-        hog_img = np.reshape(hog_img, (-1, cells * cells * 9))
-
-        # get distances
-        distances = cdist(hog_img, vocab, 'cosine')
-
-        for k in range(len(hog_img)):
-            curr_dists = distances[k]
-            sorted_ind = np.argsort(curr_dists)
-            bag_of_words[i, sorted_ind[0]] += 1
-        
-        # normalize histogram
-        bag_of_words[i, :] = bag_of_words[i, :] / np.linalg.norm(bag_of_words[i, :])
-
-        return bag_of_words
+    return hog_features
 
 
-def scores_cross_validation_svm(svc, data, labels, k, bag_of_words=False):
+def scores_cross_validation_svm(model, data, labels, k, bag_of_words=False):
     '''
         evaluates the k-fold cross validation scores: trains the model using k-1 of the folds (is subsets of our data), 
         then is validated using the remain part of the data
 
-        svc: our support vector classifier
+        model: our support vector classifier
         k: number of splits
         data: our images to train on (or features)
         labels: labels for each image
@@ -136,19 +91,19 @@ def scores_cross_validation_svm(svc, data, labels, k, bag_of_words=False):
             test_data_split = flatten_data(test_data_split)
 
         # fit data on training splits
-        model = svc.fit(train_data_split, train_label_split)
+        model.fit(train_data_split, train_label_split)
 
         # predict on test splits and evaluate score (ie accuracy)
-        predict = svc.predict(test_data_split)
+        predict = model.predict(test_data_split)
         curr_score = model.score(test_data_split, test_label_split)
         scores.append(curr_score)
         print("Score on fold", i, ":", curr_score)
     
     print(scores)
 
-def evaluate_performance(svc, train_data, train_labels, test_data, test_labels, bag_of_words=False):
+def evaluate_performance(model, train_data, train_labels, test_data, test_labels, bag_of_words=False):
     '''
-        evaluates performance of our svc
+        evaluates performance of our model
 
         bag_of_words: boolean indicating if bag of words representaiton of images used
     '''
@@ -158,13 +113,13 @@ def evaluate_performance(svc, train_data, train_labels, test_data, test_labels, 
         test_data = flatten_data(test_data)
 
     # fit our svc (which was trained using kfold cross validation) to training data
-    svc.fit(train_data, train_labels)
+    model.fit(train_data, train_labels)
 
     # determine train accuracy
-    print("Training Accuracy:", svc.score(train_data, train_labels))
+    print("Training Accuracy:", model.score(train_data, train_labels))
 
     # determine test accuracy
-    print("Testing Accuracy:", svc.score(test_data, test_labels))
+    print("Testing Accuracy:", model.score(test_data, test_labels))
 
 
 def visualize_imgs(data_sample):
@@ -188,30 +143,30 @@ def visualize_imgs(data_sample):
 
 def main():
     # read in data and train/test split
-    image_dir = '../data/genki4k/files'
     labels_dir = '../data/genki4k/labels.txt'
+    cropped_dir = '../data/genki4k/files/cropped'
 
     # read in data
-    data_sample, labels, headpose = read_raw_data(image_dir, labels_dir)
+    data_sample, labels, headpose = read_raw_data(cropped_dir, labels_dir)
     # visualize_imgs(data_sample)
 
     # train-test split
     train_data, train_labels, train_headpose, test_data, test_labels, test_headpose = train_test_split(data_sample, labels, headpose)
-
-    # build vocabulary from training data
-    if not os.path.isfile('vocab.npy'):
-        print("no existing vocab file, generating from training data")
-        vocab_size = 10
-        vocab = build_vocabulary(train_data, vocab_size)
-        # save vocab file
-        np.save('vocab.npy', vocab)
     
-    # get bag of words 
-    train_features = get_bag_of_words(train_data)
-    test_features = get_bag_of_words(test_data)
+    # get hog features
+    train_features = get_hog_features(train_data)
+    test_features = get_hog_features(test_data)
+    # print(test_features.shape)
+    print("got features")
+
+    # feed features into pca 
+    pca = PCA(n_components=0.90)
+    pca.fit(train_features)
+    train_features = pca.transform(train_features)
+    test_features = pca.transform(test_features)
 
     # initialize support vector classifer with linear kernel 
-    svc = SVC(kernel='rbf')
+    svc = SVC(kernel='linear', probability=False, C=5)
 
     # k-fold cross-validation w/o bag_of_words
     # k = 5
