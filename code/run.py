@@ -77,7 +77,7 @@ def main():
     cropped = crop_face(frame)
 
     if len(cropped) != 0:
-      prediction = detect_smile(pca, model, cropped)
+      prediction = int(detect_smile(pca, model, cropped)[0])
 
       print(prediction)
 
