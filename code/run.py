@@ -28,7 +28,9 @@ def main():
   while True:
     # detect face in frame and crop
     # run face through model
-    prediction = model(frame)
+    frame = vs.read()
+    frame = imutils.resize(frame, width=450)
+    prediction = detect_smile(frame)
 
     # if model detects smile
     if prediction > threshold:
@@ -37,8 +39,6 @@ def main():
 
     # if smile held for 15 frames, take selfie
     if counter >= 15:
-      frame = vs.read()
-      frame = imutils.resize(frame, width=450)
       frame = vs.read()
       time.sleep(.3)
       frame2= frame.copy()
@@ -55,11 +55,9 @@ def main():
 
       counter = 0
 
-  fps.stop()
-
-
-  cv2.destroyAllWindows()
-  vs.stop()
+    fps.stop()
+    cv2.destroyAllWindows()
+    vs.stop()
 
 if __name__ == '__main__':
   main()
