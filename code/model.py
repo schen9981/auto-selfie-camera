@@ -13,6 +13,7 @@ from scipy.spatial.distance import cdist
 from  sklearn.cluster import MiniBatchKMeans
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.decomposition import PCA
+import pickle
 
 
 def flatten_data(data):
@@ -177,6 +178,10 @@ def main():
     k = 5
     scores_cross_validation_svm(svc, train_features, train_labels, k, bag_of_words=True)
     evaluate_performance(svc, train_features, train_labels, test_features, test_labels, bag_of_words=True)
+
+    # saving trained model
+    filename = 'trained_model.sav'
+    pickle.dump(svc, open(filename, 'wb'))
 
         
 

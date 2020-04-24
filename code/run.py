@@ -6,6 +6,7 @@ import numpy as np
 import time
 import cv2
 from facepipeline import 
+import pickle
 
 def detect_smile(mouth):
   # to be filled in with our model
@@ -24,6 +25,9 @@ def main():
 
   fps= FPS().start()
   cv2.namedWindow("test")
+
+  filename = 'trained_model.sav'
+  model = pickle.load(open(filename, 'rb'))
 
   while True:
     # detect face in frame and crop
