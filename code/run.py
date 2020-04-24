@@ -55,11 +55,11 @@ def main():
   threshold = 0.3
   print("Starting video stream...")
   vs = VideoStream(src=0).start()
-  fileStream = False
-  time.sleep(1.0)
+  fileStream = True
+  # time.sleep(1.0)
 
   fps= FPS().start()
-  cv2.namedWindow("test")
+  # cv2.namedWindow("test")
 
   # read in trained model
   filename = 'trained_model.sav'
@@ -70,8 +70,6 @@ def main():
   pca = pickle.load(open(pca_filename, 'rb'))
 
   while True:
-    # detect face in frame and crop
-    # run face through model
     frame = vs.read()
     frame = imutils.resize(frame, width=450)
     cropped = crop_face(frame)
@@ -80,29 +78,25 @@ def main():
       prediction = int(detect_smile(pca, model, cropped)[0])
 
       print(prediction)
-
-      # if model detects smile
       if prediction == 1:
-        # accumulate num of frames
         counter += 1
-
-      # if smile held for 15 frames, take selfie
-      if counter >= 15:
+      
+      if counter >= 20:
         frame = vs.read()
-        time.sleep(.3)
+        # time.sleep(.3)
         frame2= frame.copy()
-        
         img_name = "detected_smile_{}.png".format(total)
+        save_image('../results/{}'.format(img_name), frame)
+        print("{} written!".format(img_name))
+        counter = 0
         total += 1
 
-        save_image('../results/{}'.format(img_name), frame)
+    cv2.imshow("Frame", frame)
+    fps.update()
 
-        print("{} captured with likelihood {}".format(img_name, prediction))
-
-        cv2.imshow("Frame", frame)
-        fps.update()
-
-        counter = 0
+    key2 = cv2.waitKey(1) & 0xFF
+    if key2 == ord('q'):
+        break
 
   fps.stop()
   cv2.destroyAllWindows()
