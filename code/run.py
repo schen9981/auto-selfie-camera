@@ -72,7 +72,8 @@ def main():
   while True:
     frame = vs.read()
     frame = imutils.resize(frame, width=450)
-    cropped = crop_face(frame)
+    grey_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    cropped = crop_face(grey_frame)
 
     if len(cropped) != 0:
       prediction = int(detect_smile(pca, model, cropped)[0])
@@ -81,7 +82,7 @@ def main():
       if prediction == 1:
         counter += 1
       
-      if counter >= 20:
+      if counter >= 10:
         frame = vs.read()
         # time.sleep(.3)
         frame2= frame.copy()
