@@ -5,14 +5,49 @@ import imutils
 import numpy as np
 import time
 import cv2
-from facepipeline import 
 import pickle
+import cv2
+from model import get_hog_features
 
-def detect_smile(mouth):
-  # to be filled in with our model
+# pretrained classifiers for face and eyes 
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
+
+def detect_smile(pca, model, cropped_face):
+  # get hog features
+  cropped_face = cv2.resize(cropped_face, (100, 100))
+  features = get_hog_features([cropped_face])
+
+  # get reduced dim features
+  features = pca.transform(features.reshape(1, -1))
+
+  prediction = model.predict(features)
+
+  return prediction
+
 
 def save_image(path, img):
   return cv2.imwrite(path, img)
+
+def crop_face(frame):
+  ''' 
+    takes in a frame,  detects the face, returns the 
+    cropped matrix image of the face
+  '''
+  # preprocessing 
+  faces = face_cascade.detectMultiScale(frame, 1.3, 5)
+
+  if len(faces) != 0:
+    for face in faces:
+      # if face is found
+      x = face[0]
+      y = face[1]
+      w = face[2]
+      h = face[3]
+
+      cropped = frame[x:x+w, y:y+h]
+      return cropped
+  else:
+    return []
 
 def main():
   counter = 0
@@ -26,42 +61,52 @@ def main():
   fps= FPS().start()
   cv2.namedWindow("test")
 
+  # read in trained model
   filename = 'trained_model.sav'
   model = pickle.load(open(filename, 'rb'))
+
+  # read in trained pca transformation
+  pca_filename = 'trained_feature_transform.sav'
+  pca = pickle.load(open(pca_filename, 'rb'))
 
   while True:
     # detect face in frame and crop
     # run face through model
     frame = vs.read()
     frame = imutils.resize(frame, width=450)
-    prediction = detect_smile(frame)
+    cropped = crop_face(frame)
 
-    # if model detects smile
-    if prediction > threshold:
-      # accumulate num of frames
-      counter += 1
+    if len(cropped) != 0:
+      prediction = detect_smile(pca, model, cropped)
 
-    # if smile held for 15 frames, take selfie
-    if counter >= 15:
-      frame = vs.read()
-      time.sleep(.3)
-      frame2= frame.copy()
-      
-      img_name = "detected_smile_{}.png".format(total)
-      total += 1
+      print(prediction)
 
-      save_image('../results/{}'.format(img_name), frame)
+      # if model detects smile
+      if prediction == 1:
+        # accumulate num of frames
+        counter += 1
 
-      print("{} captured with likelihood {}".format(img_name, prediction))
+      # if smile held for 15 frames, take selfie
+      if counter >= 15:
+        frame = vs.read()
+        time.sleep(.3)
+        frame2= frame.copy()
+        
+        img_name = "detected_smile_{}.png".format(total)
+        total += 1
 
-      cv2.imshow("Frame", frame)
-      fps.update()
+        save_image('../results/{}'.format(img_name), frame)
 
-      counter = 0
+        print("{} captured with likelihood {}".format(img_name, prediction))
 
-    fps.stop()
-    cv2.destroyAllWindows()
-    vs.stop()
+        cv2.imshow("Frame", frame)
+        fps.update()
+
+        counter = 0
+
+  fps.stop()
+  cv2.destroyAllWindows()
+  vs.stop()
 
 if __name__ == '__main__':
   main()

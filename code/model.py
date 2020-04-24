@@ -123,6 +123,7 @@ def evaluate_performance(model, train_data, train_labels, test_data, test_labels
     print("Testing Accuracy:", model.score(test_data, test_labels))
 
 
+
 def visualize_imgs(data_sample):
     '''
         to visualize the 400 of the 4000 images
@@ -182,6 +183,10 @@ def main():
     # saving trained model
     filename = 'trained_model.sav'
     pickle.dump(svc, open(filename, 'wb'))
+
+    # saving pca transformation
+    pca_filename = 'trained_feature_transform.sav'
+    pickle.dump(pca, open(pca_filename, 'wb'))
 
         
 
