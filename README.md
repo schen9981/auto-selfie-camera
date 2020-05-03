@@ -15,7 +15,7 @@ At the core of the smile detection model, we have a support vector classifier wi
 margin of error of 5. Once the image data is read in (after being cropped to the face, resized to 100 by 100, 
 and converted to greyscale), the HOG (Histogram of Oriented Gradients) features are extracted from the images, with 
 15 orientations, 10 cells per block, and 10 pixels per cell. However, because this extract a substantial number
-of features and thus creating a high dimensional feature space, we apply Principle Component Analysis (PCA) to
+of features and thus creating a high dimensional feature space, we apply Principal Component Analysis (PCA) to
 transform the data into a smaller, more manageable feature space, and pinpoint the features that contribute
 most to effective classification. Once the input images have been transformed as described, they are fed into
 an SVM and trained. 
