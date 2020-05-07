@@ -14,6 +14,7 @@ from  sklearn.cluster import MiniBatchKMeans
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.decomposition import PCA
 import pickle
+from skimage import exposure
 
 
 def flatten_data(data):
@@ -58,7 +59,7 @@ def get_hog_features(data):
     return hog_features
 
 
-def scores_cross_validation_svm(model, data, labels, k, bag_of_words=False):
+def scores_cross_validation_svm(model, data, labels, k, hog_features=False):
     '''
         evaluates the k-fold cross validation scores: trains the model using k-1 of the folds (is subsets of our data), 
         then is validated using the remain part of the data
@@ -67,7 +68,7 @@ def scores_cross_validation_svm(model, data, labels, k, bag_of_words=False):
         k: number of splits
         data: our images to train on (or features)
         labels: labels for each image
-        bag_of_words: boolean indicating if bag of words representaiton of images used
+        hog_features: boolean indicating if hog features are extracted from images
     '''
     # initialize KFold, which divides all the samples into k groups of samples (folds) of equal sizes
     kf = KFold(n_splits=k, random_state=0, shuffle=True)
@@ -86,8 +87,8 @@ def scores_cross_validation_svm(model, data, labels, k, bag_of_words=False):
         test_data_split = data[split_test_ind]
         test_label_split = labels[split_test_ind]
 
-        # if is not bag of words rep, flatten data
-        if not bag_of_words:
+        # if is not extracting hog_features, flatten data
+        if not hog_features:
             train_data_split = flatten_data(train_data_split)
             test_data_split = flatten_data(test_data_split)
 
@@ -102,14 +103,14 @@ def scores_cross_validation_svm(model, data, labels, k, bag_of_words=False):
     
     print(scores)
 
-def evaluate_performance(model, train_data, train_labels, test_data, test_labels, bag_of_words=False):
+def evaluate_performance(model, train_data, train_labels, test_data, test_labels, hog_features=False):
     '''
         evaluates performance of our model
 
-        bag_of_words: boolean indicating if bag of words representaiton of images used
+        hog_features: boolean indicating if hog_featues of images are being extracted
     '''
-    # flatten data if not bag of words
-    if not bag_of_words:
+    # flatten data if not extracting hog_features
+    if not hog_features:
         train_data = flatten_data(train_data)
         test_data = flatten_data(test_data)
 
@@ -170,15 +171,15 @@ def main():
     # initialize support vector classifer with linear kernel 
     svc = SVC(kernel='linear', probability=False, C=5)
 
-    # k-fold cross-validation w/o bag_of_words
+    # k-fold cross-validation on base images
     # k = 5
     # scores_cross_validation_svm(svc, train_data, train_labels, k)
     # evaluate_performance(svc, train_data, train_labels, test_data, test_labels)
 
-    # k-fold cross validation w/ bag_of_words
+    # k-fold cross validation w/ hog_features
     k = 5
-    scores_cross_validation_svm(svc, train_features, train_labels, k, bag_of_words=True)
-    evaluate_performance(svc, train_features, train_labels, test_features, test_labels, bag_of_words=True)
+    scores_cross_validation_svm(svc, train_features, train_labels, k, hog_features=True)
+    evaluate_performance(svc, train_features, train_labels, test_features, test_labels, hog_features=True)
 
     # saving trained model
     filename = 'trained_model.sav'
