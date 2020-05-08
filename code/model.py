@@ -159,11 +159,10 @@ def main():
     # get hog features
     train_features = get_hog_features(train_data)
     test_features = get_hog_features(test_data)
-    # print(test_features.shape)
     print("got features")
 
     # feed features into pca 
-    pca = PCA(n_components=0.90)
+    pca = PCA(n_components=0.95)
     pca.fit(train_features)
     train_features = pca.transform(train_features)
     test_features = pca.transform(test_features)

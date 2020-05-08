@@ -25,7 +25,7 @@ in order to generate more train-test sets to determine the performance of the mo
 out 5-fold cross validation, and observed the scores in each fold to determine the optimal parameters for 
 our final trained model.
 
-Once the parameters were appropriately tuned and the accuracy was evaluted, the final trained SVM model, along with
+Once the parameters were appropriately tuned and the accuracy was evaluated, the final trained SVM model, along with
 the tuned PCA transformation, were pickled and saved to be read into the driver program for the live camera feed. 
 
 
@@ -35,5 +35,15 @@ The live camera feed is implemented using a VideoStream package, which, once ini
 frames that are represented as pixel matrices. Frames are continuously read in and fed into the pre-trained
 model face detection model, in order to crop the frame/image appropriately to be fed into the smile detection
 model. If a smile is detected for at least 10 frames, the frame is saved as a .png image in the /results directory. 
+
+### Running the Program
+
+First begin by cloning this repository. 
+
+Because of the size of the data directory, a compressed version of the files have been uploaded to Google Drive. Download the zipped file at this [link](https://drive.google.com/file/d/1zcgat0Dl3Zi4dw_bMen8dm0gDGDgCPm4/view?usp=sharing) and unzip the directory. This will give you a directory named 'data', with a directory 'genki4k' and a README file explaining the contents. Simply move all the contents of the 'data' directory into the 'data' directory of the cloned repository. More details as the the contents of the data directory can be found the the downloaded README. 
+
+You will need specific dependencies, which can be installed with the following requirements.txt [file](http://cs.brown.edu/courses/csci1430/gradescope/requirements.txt), as well as the 'imutils' package. 
+
+Now, you can run the application! Simply navigate to the 'code' directory and run 'python run.py', and you will see the live camera input begin!
 
 
