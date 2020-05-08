@@ -9,6 +9,8 @@ when it detects the subject smiling. There are 2 core components:
 1. the smile detection model
 2. the live camera feed
 
+A report of our methodology and conclusions are in final_report.pdf.
+
 ### Smile Detection Model
 
 At the core of the smile detection model, we have a support vector classifier with a linear kernel, with a 
